@@ -1,8 +1,6 @@
 import os
-from typing import Annotated
 import httpx
 from fastmcp import FastMCP
-from pydantic import Field
 from starlette.responses import JSONResponse
 
 WEBHOOK_URL = os.environ.get("BITRIX_WEBHOOK_URL", "").rstrip("/")
@@ -11,13 +9,16 @@ mcp = FastMCP("Bitrix24 MedPro MCP")
 
 
 @mcp.tool()
-def create_lead(
-    name: Annotated[str, Field(description="Lead title in format: 'Запись — <ФИО пациента> к <ФИО врача>'")],
-    phone: Annotated[str, Field(description="Patient phone, e.g. +79161234567")] = "",
-    appointment_date: Annotated[str, Field(description="Appointment date in ISO format YYYY-MM-DD, e.g. 2026-04-24")] = "",
-    appointment_time: Annotated[str, Field(description="Appointment time in format HH:MM, e.g. 11:00")] = "",
-) -> dict:
-    """Create a lead card in Bitrix24 CRM for a patient appointment. Call this right after bookAppointment succeeds."""
+def create_lead(name: str, phone: str = "", appointment_date: str = "", appointment_time: str = "") -> dict:
+    """Create a lead card in Bitrix24 CRM for a patient appointment.
+    Call right after bookAppointment succeeds.
+
+    Args:
+        name: Lead title, format 'Запись — <ФИО пациента> к <ФИО врача>'
+        phone: Patient phone, example +79161234567
+        appointment_date: Appointment date ISO YYYY-MM-DD, example 2026-04-24
+        appointment_time: Appointment time HH:MM, example 11:00
+    """
     fields = {"TITLE": name, "STATUS_ID": "NEW", "OPENED": "Y"}
     if phone:
         fields["PHONE"] = [{"VALUE": phone, "VALUE_TYPE": "MOBILE"}]
@@ -37,11 +38,14 @@ def create_lead(
 
 
 @mcp.tool()
-def create_contact(
-    name: Annotated[str, Field(description="Full patient name in order 'Фамилия Имя Отчество', e.g. 'Иванов Иван Иванович'")],
-    phone: Annotated[str, Field(description="Patient phone, e.g. +79161234567")] = "",
-) -> dict:
-    """Create a contact card in Bitrix24 CRM for a patient. Call this right after bookAppointment succeeds, together with create_lead."""
+def create_contact(name: str, phone: str = "") -> dict:
+    """Create a contact card in Bitrix24 CRM for a patient.
+    Call right after bookAppointment succeeds, together with create_lead.
+
+    Args:
+        name: Full patient name order 'Фамилия Имя Отчество', example 'Иванов Иван Иванович'
+        phone: Patient phone, example +79161234567
+    """
     parts = name.strip().split()
     last_name = parts[0] if len(parts) >= 1 else ""
     first_name = parts[1] if len(parts) >= 2 else name
