@@ -23,11 +23,10 @@ def create_lead(name: str, phone: str = "", appointment_date: str = "", appointm
     fields = {"TITLE": name, "STATUS_ID": "NEW", "OPENED": "Y"}
     if phone:
         fields["PHONE"] = [{"VALUE": phone, "VALUE_TYPE": "MOBILE"}]
-        if appointment_date and appointment_time:
+    if appointment_date and appointment_time:
         fields["UF_CRM_1776790754"] = f"{appointment_date}T{appointment_time}:00"
     elif appointment_date:
         fields["UF_CRM_1776790754"] = f"{appointment_date}T00:00:00"
-
     try:
         resp = httpx.post(
             f"{WEBHOOK_URL}/crm.lead.add.json",
