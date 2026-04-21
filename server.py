@@ -1,21 +1,16 @@
-import os
-import httpx
-from fastmcp import FastMCP
-from starlette.responses import JSONResponse
-
-WEBHOOK_URL = os.environ.get("BITRIX_WEBHOOK_URL", "").rstrip("/")
-
-mcp = FastMCP("Bitrix24 MedPro MCP")
-
-
 @mcp.tool()
-def create_lead(name: str, phone: str = "", comment: str = "") -> dict:
-    """Put a lead card into Bitrix24 CRM. Parameters: name (lead title), phone (optional), comment (optional)."""
+def create_lead(name: str, phone: str = "", appointment_date: str = "", appointment_time: str = "") -> dict:
+    """Put a lead card into Bitrix24 CRM. Parameters: name (lead title), phone (optional), appointment_date (YYYY-MM-DD), appointment_time (HH:MM)."""
     fields = {"TITLE": name, "STATUS_ID": "NEW", "OPENED": "Y"}
     if phone:
         fields["PHONE"] = [{"VALUE": phone, "VALUE_TYPE": "MOBILE"}]
-    if comment:
-        fields["COMMENTS"] = comment
+    comment_parts = []
+    if appointment_date:
+        comment_parts.append(f"Дата: {appointment_date}")
+    if appointment_time:
+        comment_parts.append(f"Время: {appointment_time}")
+    if comment_parts:
+        fields["COMMENTS"] = " | ".join(comment_parts)
     resp = httpx.post(
         f"{WEBHOOK_URL}/crm.lead.add.json",
         json={"fields": fields},
@@ -26,8 +21,17 @@ def create_lead(name: str, phone: str = "", comment: str = "") -> dict:
 
 @mcp.tool()
 def create_contact(name: str, phone: str = "") -> dict:
-    """Put a contact card into Bitrix24 CRM. Parameters: name (full name), phone (optional)."""
-    fields = {"NAME": name, "OPENED": "Y"}
+    """Put a contact card into Bitrix24 CRM. Parameters: name (full patient name like 'Иванов Иван Иванович'), phone (optional)."""
+    parts = name.strip().split()
+    last_name = parts[0] if len(parts) >= 1 else ""
+    first_name = parts[1] if len(parts) >= 2 else name
+    second_name = parts[2] if len(parts) >= 3 else ""
+    fields = {
+        "NAME": first_name,
+        "LAST_NAME": last_name,
+        "SECOND_NAME": second_name,
+        "OPENED": "Y",
+    }
     if phone:
         fields["PHONE"] = [{"VALUE": phone, "VALUE_TYPE": "MOBILE"}]
     resp = httpx.post(
@@ -36,12 +40,3 @@ def create_contact(name: str, phone: str = "") -> dict:
         timeout=15.0,
     )
     return resp.json()
-
-
-@mcp.custom_route("/health", methods=["GET"])
-async def health(request):
-    return JSONResponse({"status": "ok"})
-
-
-if __name__ == "__main__":
-        mcp.run(transport="streamable-http", host="0.0.0.0", port=8000, path="/mcp")
