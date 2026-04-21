@@ -37,11 +37,5 @@ def create_contact(name: str, phone: str = "") -> dict:
     return resp.json()
 
 
-@mcp.custom_route("/health", methods=["GET"])
-async def health(request):
-    from starlette.responses import JSONResponse
-    return JSONResponse({"status": "ok"})
-
-
 if __name__ == "__main__":
-    mcp.run(transport="http", host="0.0.0.0", port=8000, path="/mcp")
+    mcp.run(transport="sse", host="0.0.0.0", port=8000)
