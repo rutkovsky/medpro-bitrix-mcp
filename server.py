@@ -10,19 +10,35 @@ mcp = FastMCP("Bitrix24 MedPro MCP")
 
 
 @mcp.tool()
-def create_lead(name: str, phone: str = "", appointment_date: str = "", appointment_time: str = "") -> str:
+def create_lead(
+    name: str,
+    phone: str = "",
+    appointment_date: str = "",
+    appointment_time: str = "",
+    patient_name: str = "",
+    contact_id: int = 0,
+) -> str:
     """Create a lead card in Bitrix24 CRM for a patient appointment.
-    Call right after bookAppointment succeeds.
+    Call right after bookAppointment succeeds. Pass contact_id from create_contact result.
 
     Args:
         name: Lead title format 'Запись к <ФИО врача>'
         phone: Patient phone example +79161234567
         appointment_date: Appointment date ISO YYYY-MM-DD example 2026-04-24
         appointment_time: Appointment time HH:MM example 11:00
+        patient_name: Full patient name example 'Иванов Иван Иванович'
+        contact_id: Bitrix24 contact ID returned by create_contact tool
     """
     fields = {"TITLE": name, "STATUS_ID": "NEW", "OPENED": "Y"}
+    if patient_name:
+        parts = patient_name.strip().split(maxsplit=2)
+        fields["LAST_NAME"] = parts[0] if len(parts) >= 1 else ""
+        fields["NAME"] = parts[1] if len(parts) >= 2 else ""
+        fields["SECOND_NAME"] = parts[2] if len(parts) >= 3 else ""
     if phone:
         fields["PHONE"] = [{"VALUE": phone, "VALUE_TYPE": "MOBILE"}]
+    if contact_id:
+        fields["CONTACT_ID"] = contact_id
     if appointment_date and appointment_time:
         fields["UF_CRM_1776790754"] = f"{appointment_date}T{appointment_time}:00"
     elif appointment_date:
@@ -45,7 +61,8 @@ def create_lead(name: str, phone: str = "", appointment_date: str = "", appointm
 @mcp.tool()
 def create_contact(name: str, phone: str = "") -> str:
     """Create a contact card in Bitrix24 CRM for a patient.
-    Call right after bookAppointment succeeds, together with create_lead.
+    Call right after bookAppointment succeeds, BEFORE create_lead.
+    Returns contact_id to pass into create_lead.
 
     Args:
         name: Full patient name, example 'Иванов Иван Иванович'
