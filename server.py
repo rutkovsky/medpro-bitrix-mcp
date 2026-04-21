@@ -43,7 +43,7 @@ async def health(request):
     return JSONResponse({"status": "ok"})
 
 
-app = mcp.http_app()
+app = mcp.http_app(path="/mcp")
 app.routes.append(Route("/health", health))
 
 
