@@ -43,6 +43,7 @@ def create_lead(name: str, phone: str = "", appointment_date: str = "", appointm
 
 
 @mcp.tool()
+@mcp.tool()
 def create_contact(name: str, phone: str = "") -> str:
     """Create a contact card in Bitrix24 CRM for a patient.
     Call right after bookAppointment succeeds, together with create_lead.
@@ -52,7 +53,7 @@ def create_contact(name: str, phone: str = "") -> str:
         phone: Patient phone, example +79161234567
     """
     fields = {
-        "NAME": name,
+        "LAST_NAME": name,
         "OPENED": "Y",
     }
     if phone:
