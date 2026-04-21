@@ -1,6 +1,8 @@
 import os
 import httpx
 from fastmcp import FastMCP
+from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 WEBHOOK_URL = os.environ.get("BITRIX_WEBHOOK_URL", "").rstrip("/")
 
@@ -37,5 +39,14 @@ def create_contact(name: str, phone: str = "") -> dict:
     return resp.json()
 
 
+async def health(request):
+    return JSONResponse({"status": "ok"})
+
+
+app = mcp.http_app()
+app.routes.append(Route("/health", health))
+
+
 if __name__ == "__main__":
-    mcp.run(transport="http", host="0.0.0.0", port=8000)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
