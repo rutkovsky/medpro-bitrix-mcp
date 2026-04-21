@@ -51,8 +51,14 @@ def create_contact(name: str, phone: str = "") -> str:
         name: Full patient name, example 'Иванов Иван Иванович'
         phone: Patient phone, example +79161234567
     """
+    parts = name.strip().split(maxsplit=2)
+    last_name = parts[0] if len(parts) >= 1 else ""
+    first_name = parts[1] if len(parts) >= 2 else ""
+    second_name = parts[2] if len(parts) >= 3 else ""
     fields = {
-        "LAST_NAME": name,
+        "LAST_NAME": last_name,
+        "NAME": first_name,
+        "SECOND_NAME": second_name,
         "OPENED": "Y",
     }
     if phone:
