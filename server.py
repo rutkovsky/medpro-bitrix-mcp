@@ -1,4 +1,5 @@
 import os
+import json
 import httpx
 from fastmcp import FastMCP
 from starlette.responses import JSONResponse
@@ -9,7 +10,7 @@ mcp = FastMCP("Bitrix24 MedPro MCP")
 
 
 @mcp.tool()
-def create_lead(name: str, phone: str = "", appointment_date: str = "", appointment_time: str = "") -> dict:
+def create_lead(name: str, phone: str = "", appointment_date: str = "", appointment_time: str = "") -> str:
     """Create a lead card in Bitrix24 CRM for a patient appointment.
     Call right after bookAppointment succeeds.
 
@@ -29,16 +30,23 @@ def create_lead(name: str, phone: str = "", appointment_date: str = "", appointm
         comment_parts.append(f"Время: {appointment_time}")
     if comment_parts:
         fields["COMMENTS"] = " | ".join(comment_parts)
-    resp = httpx.post(
-        f"{WEBHOOK_URL}/crm.lead.add.json",
-        json={"fields": fields},
-        timeout=15.0,
-    )
-    return resp.json()
+    try:
+        resp = httpx.post(
+            f"{WEBHOOK_URL}/crm.lead.add.json",
+            json={"fields": fields},
+            timeout=15.0,
+        )
+        data = resp.json()
+        lead_id = data.get("result")
+        if lead_id:
+            return json.dumps({"ok": True, "lead_id": lead_id}, ensure_ascii=False)
+        return json.dumps({"ok": False, "error": str(data.get("error_description", data))}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False)
 
 
 @mcp.tool()
-def create_contact(name: str, phone: str = "") -> dict:
+def create_contact(name: str, phone: str = "") -> str:
     """Create a contact card in Bitrix24 CRM for a patient.
     Call right after bookAppointment succeeds, together with create_lead.
 
@@ -58,12 +66,19 @@ def create_contact(name: str, phone: str = "") -> dict:
     }
     if phone:
         fields["PHONE"] = [{"VALUE": phone, "VALUE_TYPE": "MOBILE"}]
-    resp = httpx.post(
-        f"{WEBHOOK_URL}/crm.contact.add.json",
-        json={"fields": fields},
-        timeout=15.0,
-    )
-    return resp.json()
+    try:
+        resp = httpx.post(
+            f"{WEBHOOK_URL}/crm.contact.add.json",
+            json={"fields": fields},
+            timeout=15.0,
+        )
+        data = resp.json()
+        contact_id = data.get("result")
+        if contact_id:
+            return json.dumps({"ok": True, "contact_id": contact_id}, ensure_ascii=False)
+        return json.dumps({"ok": False, "error": str(data.get("error_description", data))}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False)
 
 
 @mcp.custom_route("/health", methods=["GET"])
